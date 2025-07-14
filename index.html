@@ -151,7 +151,7 @@
 
     <script>
         // !!! สำคัญ: กรุณาใส่ URL ของ Google Apps Script ที่ท่าน Deploy ไว้ที่นี่
-        const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec";
 
         // DOM Elements
         const studentIdInput = document.getElementById('studentIdInput');
@@ -385,7 +385,7 @@
         
         // Check if the script URL is set
         window.onload = () => {
-            if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec") {
+            if (SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
                 Swal.fire({
                     icon: 'error',
                     title: 'การตั้งค่าไม่สมบูรณ์',
