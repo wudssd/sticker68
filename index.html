@@ -40,15 +40,6 @@
             from { opacity: 1; transform: scale(1); }
             to { opacity: 0; transform: scale(0.95); }
         }
-        /* Placeholder image style */
-        .placeholder-img {
-            background-color: #e2e8f0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #718096;
-            font-size: 0.875rem;
-        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -129,20 +120,18 @@
                     <div><strong>เบอร์โทรศัพท์ฉุกเฉิน:</strong> <span id="modalEmergencyPhone"></span></div>
                 </div>
 
-                <!-- Sticker Section -->
+                <!-- Sticker Section (Updated) -->
                 <div class="mt-8 pt-6 border-t">
-                    <h3 class="text-lg font-semibold text-gray-700 mb-3">ออกหมายเลขสติกเกอร์</h3>
-                    <div id="stickerSection">
-                        <div class="flex flex-col sm:flex-row gap-4">
-                            <input type="text" id="stickerNumberInput" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="สร้างหมายเลขสติกเกอร์อัตโนมัติ">
-                            <button id="generateStickerButton" class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
-                                บันทึกสติกเกอร์
-                            </button>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">หมายเลขสติกเกอร์</h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                            <p><strong>สติกเกอร์รถไฟฟ้า (EV):</strong></p>
+                            <span id="stickerDisplayEV"></span>
                         </div>
-                    </div>
-                    <div id="stickerDisplay" class="hidden mt-4 text-center">
-                        <p class="text-gray-600">หมายเลขสติกเกอร์ที่ลงทะเบียนแล้ว:</p>
-                        <p id="savedStickerNumber" class="text-2xl font-bold text-green-600 bg-green-100 rounded-lg py-2 px-4 inline-block"></p>
+                        <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                            <p><strong>สติกเกอร์รถยนต์น้ำมัน:</strong></p>
+                            <span id="stickerDisplayGas"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -158,47 +147,28 @@
         const searchButton = document.getElementById('searchButton');
         const resultsContainer = document.getElementById('resultsContainer');
         const loader = document.getElementById('loader');
-        
-        // Modal Elements
         const detailModal = document.getElementById('detailModal');
         const modalContent = document.getElementById('modalContent');
         const closeModalButton = document.getElementById('closeModalButton');
-        
-        // Sticker Elements
-        const generateStickerButton = document.getElementById('generateStickerButton');
-        const stickerNumberInput = document.getElementById('stickerNumberInput');
-        const stickerSection = document.getElementById('stickerSection');
-        const stickerDisplay = document.getElementById('stickerDisplay');
-        const savedStickerNumber = document.getElementById('savedStickerNumber');
 
         let currentData = [];
         let currentRowIndex = null;
 
         // --- JSONP Handling ---
         function jsonpRequest(url, callbackName) {
-            // Remove any existing script tag with the same id to avoid conflicts
             const oldScript = document.getElementById(callbackName);
             if (oldScript) {
                 oldScript.parentNode.removeChild(oldScript);
             }
-
             const script = document.createElement('script');
             script.id = callbackName;
             script.src = `${url}&callback=${callbackName}`;
             document.body.appendChild(script);
-
-            // Cleanup script tag after it has been loaded and executed
-            script.onload = () => {
-                document.body.removeChild(script);
-            };
+            script.onload = () => { document.body.removeChild(script); };
             script.onerror = () => {
                 document.body.removeChild(script);
                 loader.classList.add('hidden');
-                 Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบ URL ของ Script หรือการตั้งค่า',
-                });
+                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบ URL ของ Script หรือการตั้งค่า', 'error');
             };
         }
 
@@ -206,14 +176,9 @@
         function performSearch() {
             const studentId = studentIdInput.value.trim();
             if (studentId.length !== 8 || !/^\d+$/.test(studentId)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'ข้อมูลไม่ถูกต้อง',
-                    text: 'กรุณากรอกรหัสนักศึกษาเป็นตัวเลข 8 หลัก',
-                });
+                Swal.fire('ข้อมูลไม่ถูกต้อง', 'กรุณากรอกรหัสนักศึกษาเป็นตัวเลข 8 หลัก', 'warning');
                 return;
             }
-
             resultsContainer.innerHTML = '';
             loader.classList.remove('hidden');
             const url = `${SCRIPT_URL}?action=search&studentId=${studentId}`;
@@ -251,23 +216,18 @@
                         <button onclick="showDetails(${index})" class="mt-5 w-full bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-2 px-4 rounded-lg transition duration-300">
                             คลิกดูรายละเอียด
                         </button>
-                    </div>
-                `;
+                    </div>`;
                 resultsContainer.innerHTML += card;
             });
         }
         
         searchButton.addEventListener('click', performSearch);
-        studentIdInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                performSearch();
-            }
-        });
+        studentIdInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') performSearch(); });
 
         // --- Modal Functionality ---
         window.showDetails = function(index) {
             const item = currentData[index];
-            currentRowIndex = item.row; // Store the original row number
+            currentRowIndex = item.row;
 
             // Populate text data
             document.getElementById('modalTimestamp').textContent = item.timestamp || 'N/A';
@@ -294,18 +254,19 @@
             document.getElementById('imgLeft').src = item.imgLeft || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
             document.getElementById('imgRight').src = item.imgRight || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
 
-            // Handle Sticker section
-            if (item.stickerNumber) {
-                stickerSection.classList.add('hidden');
-                stickerDisplay.classList.remove('hidden');
-                savedStickerNumber.textContent = item.stickerNumber;
+            // --- Handle Sticker Display ---
+            const stickerEVContainer = document.getElementById('stickerDisplayEV');
+            if (item.stickerEV) {
+                stickerEVContainer.innerHTML = `<span class="text-lg font-bold text-green-600 bg-green-100 rounded-lg py-1 px-3">${item.stickerEV}</span>`;
             } else {
-                stickerSection.classList.remove('hidden');
-                stickerDisplay.classList.add('hidden');
-                // Auto-generate a suggested sticker number
-                const year = new Date().getFullYear();
-                const randomNum = Math.floor(1000 + Math.random() * 9000);
-                stickerNumberInput.value = `${year}-${randomNum}`;
+                stickerEVContainer.innerHTML = `<button onclick="issueSticker('ev')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-4 rounded-lg text-xs">ออกเลข</button>`;
+            }
+
+            const stickerGasContainer = document.getElementById('stickerDisplayGas');
+            if (item.stickerGas) {
+                stickerGasContainer.innerHTML = `<span class="text-lg font-bold text-green-600 bg-green-100 rounded-lg py-1 px-3">${item.stickerGas}</span>`;
+            } else {
+                stickerGasContainer.innerHTML = `<button onclick="issueSticker('gas')" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-4 rounded-lg text-xs">ออกเลข</button>`;
             }
 
             // Show modal
@@ -317,75 +278,54 @@
         function closeModal() {
             modalContent.classList.remove('modal-enter');
             modalContent.classList.add('modal-leave');
-            setTimeout(() => {
-                detailModal.classList.add('hidden');
-            }, 300); // Match animation duration
+            setTimeout(() => { detailModal.classList.add('hidden'); }, 300);
         }
 
         closeModalButton.addEventListener('click', closeModal);
-        detailModal.addEventListener('click', (e) => {
-            if (e.target === detailModal) {
-                closeModal();
-            }
-        });
+        detailModal.addEventListener('click', (e) => { if (e.target === detailModal) closeModal(); });
 
-        // --- Sticker Generation ---
-        generateStickerButton.addEventListener('click', () => {
-            const stickerNumber = stickerNumberInput.value.trim();
-            if (!stickerNumber) {
-                 Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกหมายเลขสติกเกอร์', 'warning');
-                 return;
-            }
-            if (currentRowIndex === null) {
-                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลแถวที่ต้องการอัปเดต', 'error');
-                 return;
-            }
+        // --- Sticker Issuing ---
+        window.issueSticker = function(type) {
+            const year = new Date().getFullYear();
+            const randomNum = Math.floor(1000 + Math.random() * 9000);
+            const stickerTitle = type === 'ev' ? 'สติกเกอร์รถไฟฟ้า (EV)' : 'สติกเกอร์รถยนต์น้ำมัน';
 
             Swal.fire({
-                title: 'ยืนยันการบันทึก?',
-                text: `คุณต้องการบันทึกหมายเลขสติกเกอร์ "${stickerNumber}" ใช่หรือไม่?`,
-                icon: 'question',
+                title: `ออกเลข${stickerTitle}`,
+                input: 'text',
+                inputValue: `${year}-${randomNum}`,
                 showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'ยกเลิก'
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณาใส่หมายเลขสติกเกอร์!'
+                    }
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const url = `${SCRIPT_URL}?action=updateSticker&row=${currentRowIndex}&stickerNumber=${encodeURIComponent(stickerNumber)}`;
+                    const stickerNumber = result.value;
+                    const url = `${SCRIPT_URL}?action=updateSticker&row=${currentRowIndex}&stickerNumber=${encodeURIComponent(stickerNumber)}&stickerType=${type}`;
                     jsonpRequest(url, 'handleUpdateResult');
                 }
             });
-        });
+        }
 
         // --- Callback for Sticker Update ---
         window.handleUpdateResult = function(response) {
             if (response.status === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'บันทึกสำเร็จ!',
-                    text: 'หมายเลขสติกเกอร์ถูกบันทึกเรียบร้อยแล้ว',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                // Update UI in modal
-                savedStickerNumber.textContent = stickerNumberInput.value.trim();
-                stickerSection.classList.add('hidden');
-                stickerDisplay.classList.remove('hidden');
-                // Refresh search to get updated data
+                Swal.fire('บันทึกสำเร็จ!', 'หมายเลขสติกเกอร์ถูกบันทึกเรียบร้อยแล้ว', 'success');
+                // Refresh search to get updated data and reflect changes in the modal
                 performSearch();
+                closeModal(); // Close the current modal
             } else {
-                 Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: response.message || 'ไม่สามารถบันทึกข้อมูลได้',
-                });
+                 Swal.fire('เกิดข้อผิดพลาด', response.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
             }
         }
         
-        // **แก้ไขแล้ว** Check if the script URL is set
+        // Check if the script URL is set on window load
         window.onload = () => {
-            if (SCRIPT_URL === "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE") {
+            if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec") {
                 Swal.fire({
                     icon: 'error',
                     title: 'การตั้งค่าไม่สมบูรณ์',
@@ -396,7 +336,6 @@
                  searchButton.disabled = true;
             }
         };
-
     </script>
 </body>
 </html>
