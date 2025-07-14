@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบค้นหาและออกเลขสติกเกอร์รถ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ใช้ฟอนต์ Sarabun สำหรับภาษาไทย และ Inter สำหรับภาษาอังกฤษ */
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+        }
+        /* Custom styles for better look and feel */
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Modal animation */
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .modal-leave {
+            animation: fadeOut 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+        /* Placeholder image style */
+        .placeholder-img {
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #718096;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="bg-white rounded-xl shadow-md p-6 mb-8 text-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">ระบบค้นหาและออกเลขสติกเกอร์</h1>
+            <p class="text-gray-500 mt-2">ค้นหาข้อมูลรถที่ลงทะเบียนจากรหัสนักศึกษา</p>
+        </header>
+
+        <!-- Search Section -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="studentIdInput" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="กรอกรหัสนักศึกษา 8 หลัก..." maxlength="8">
+                <button id="searchButton" class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300">
+                    ค้นหา
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Result cards will be inserted here -->
+        </div>
+         <div id="loader" class="hidden text-center py-10">
+            <svg class="animate-spin h-8 w-8 text-blue-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-gray-600">กำลังค้นหาข้อมูล...</p>
+        </div>
+
+    </div>
+
+    <!-- Modal for Detailed View -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative modal-enter">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center z-10">
+                <h2 class="text-xl font-bold text-gray-800">รายละเอียดข้อมูลรถ</h2>
+                <button id="closeModalButton" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <!-- Vehicle Images -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <img id="imgFront" src="" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/718096?text=รูปด้านหน้า';" class="w-full h-auto object-cover rounded-lg aspect-video">
+                    <img id="imgRear" src="" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/718096?text=รูปด้านหลัง';" class="w-full h-auto object-cover rounded-lg aspect-video">
+                    <img id="imgLeft" src="" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/718096?text=รูปด้านซ้าย';" class="w-full h-auto object-cover rounded-lg aspect-video">
+                    <img id="imgRight" src="" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/718096?text=รูปด้านขวา';" class="w-full h-auto object-cover rounded-lg aspect-video">
+                </div>
+                
+                <!-- Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+                    <div class="lg:col-span-3"><h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">ข้อมูลเจ้าของและรถ</h3></div>
+                    <div><strong>รหัสนักศึกษา:</strong> <span id="modalStudentId"></span></div>
+                    <div><strong>ชื่อ-สกุล:</strong> <span id="modalFullName"></span></div>
+                    <div><strong>สำนักวิชา:</strong> <span id="modalFaculty"></span></div>
+                    <div><strong>เบอร์โทรศัพท์:</strong> <span id="modalPhone"></span></div>
+                    <div><strong>ทะเบียนรถ:</strong> <span id="modalLicensePlate"></span></div>
+                    <div><strong>จังหวัด:</strong> <span id="modalProvince"></span></div>
+                    <div><strong>ประเภทรถ:</strong> <span id="modalVehicleType"></span></div>
+                    <div><strong>ยี่ห้อรถ:</strong> <span id="modalBrand"></span></div>
+                    <div><strong>รุ่นรถ:</strong> <span id="modalModel"></span></div>
+                    <div><strong>สีรถ:</strong> <span id="modalColor"></span></div>
+                    <div><strong>ใบอนุญาตขับรถ:</strong> <span id="modalDriverLicense"></span></div>
+                    <div><strong>วันที่บันทึก:</strong> <span id="modalTimestamp"></span></div>
+                    <div class="md:col-span-2 lg:col-span-3"><strong>ที่พักปัจจุบัน:</strong> <span id="modalAccommodation"></span></div>
+                    <div class="md:col-span-2 lg:col-span-3"><strong>ที่อยู่:</strong> <span id="modalAddress"></span></div>
+
+                    <div class="lg:col-span-3 mt-4"><h3 class="text-lg font-semibold text-gray-700 border-b pb-2 mb-2">ข้อมูลติดต่อฉุกเฉิน</h3></div>
+                    <div><strong>ผู้ติดต่อ:</strong> <span id="modalEmergencyContact"></span></div>
+                    <div><strong>ความสัมพันธ์:</strong> <span id="modalEmergencyRelation"></span></div>
+                    <div><strong>เบอร์โทรศัพท์ฉุกเฉิน:</strong> <span id="modalEmergencyPhone"></span></div>
+                </div>
+
+                <!-- Sticker Section -->
+                <div class="mt-8 pt-6 border-t">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">ออกหมายเลขสติกเกอร์</h3>
+                    <div id="stickerSection">
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <input type="text" id="stickerNumberInput" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="สร้างหมายเลขสติกเกอร์อัตโนมัติ">
+                            <button id="generateStickerButton" class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                                บันทึกสติกเกอร์
+                            </button>
+                        </div>
+                    </div>
+                    <div id="stickerDisplay" class="hidden mt-4 text-center">
+                        <p class="text-gray-600">หมายเลขสติกเกอร์ที่ลงทะเบียนแล้ว:</p>
+                        <p id="savedStickerNumber" class="text-2xl font-bold text-green-600 bg-green-100 rounded-lg py-2 px-4 inline-block"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // !!! สำคัญ: กรุณาใส่ URL ของ Google Apps Script ที่ท่าน Deploy ไว้ที่นี่
+        const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+
+        // DOM Elements
+        const studentIdInput = document.getElementById('studentIdInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loader = document.getElementById('loader');
+        
+        // Modal Elements
+        const detailModal = document.getElementById('detailModal');
+        const modalContent = document.getElementById('modalContent');
+        const closeModalButton = document.getElementById('closeModalButton');
+        
+        // Sticker Elements
+        const generateStickerButton = document.getElementById('generateStickerButton');
+        const stickerNumberInput = document.getElementById('stickerNumberInput');
+        const stickerSection = document.getElementById('stickerSection');
+        const stickerDisplay = document.getElementById('stickerDisplay');
+        const savedStickerNumber = document.getElementById('savedStickerNumber');
+
+        let currentData = [];
+        let currentRowIndex = null;
+
+        // --- JSONP Handling ---
+        function jsonpRequest(url, callbackName) {
+            // Remove any existing script tag with the same id to avoid conflicts
+            const oldScript = document.getElementById(callbackName);
+            if (oldScript) {
+                oldScript.parentNode.removeChild(oldScript);
+            }
+
+            const script = document.createElement('script');
+            script.id = callbackName;
+            script.src = `${url}&callback=${callbackName}`;
+            document.body.appendChild(script);
+
+            // Cleanup script tag after it has been loaded and executed
+            script.onload = () => {
+                document.body.removeChild(script);
+            };
+            script.onerror = () => {
+                document.body.removeChild(script);
+                loader.classList.add('hidden');
+                 Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบ URL ของ Script หรือการตั้งค่า',
+                });
+            };
+        }
+
+        // --- Search Functionality ---
+        function performSearch() {
+            const studentId = studentIdInput.value.trim();
+            if (studentId.length !== 8 || !/^\d+$/.test(studentId)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ถูกต้อง',
+                    text: 'กรุณากรอกรหัสนักศึกษาเป็นตัวเลข 8 หลัก',
+                });
+                return;
+            }
+
+            resultsContainer.innerHTML = '';
+            loader.classList.remove('hidden');
+            const url = `${SCRIPT_URL}?action=search&studentId=${studentId}`;
+            jsonpRequest(url, 'handleSearchResults');
+        }
+
+        // --- Callback for Search Results ---
+        window.handleSearchResults = function(response) {
+            loader.classList.add('hidden');
+            if (response.status === 'success' && response.data.length > 0) {
+                currentData = response.data;
+                displayResults(currentData);
+            } else {
+                resultsContainer.innerHTML = `<div class="col-span-full text-center py-10 bg-white rounded-xl shadow-md">
+                    <h3 class="text-xl font-semibold text-gray-700">ไม่พบข้อมูล</h3>
+                    <p class="text-gray-500 mt-2">ไม่พบข้อมูลสำหรับรหัสนักศึกษา '${studentIdInput.value}'</p>
+                </div>`;
+            }
+        }
+
+        function displayResults(data) {
+            resultsContainer.innerHTML = '';
+            data.forEach((item, index) => {
+                const card = `
+                    <div class="card bg-white rounded-xl shadow-md overflow-hidden p-5 flex flex-col justify-between" style="border-left: 5px solid #60a5fa;">
+                        <div>
+                            <p class="text-sm text-gray-500">รหัสนักศึกษา: ${item.studentId || 'N/A'}</p>
+                            <h3 class="font-bold text-lg text-gray-800 mt-1">${item.fullName || 'N/A'}</h3>
+                            <div class="mt-4 space-y-2 text-sm text-gray-700">
+                                <p><strong>ทะเบียน:</strong> ${item.licensePlate || 'N/A'}</p>
+                                <p><strong>ประเภท:</strong> ${item.vehicleType || 'N/A'}</p>
+                                <p><strong>ยี่ห้อ/รุ่น:</strong> ${item.brand || 'N/A'} ${item.model || ''}</p>
+                            </div>
+                        </div>
+                        <button onclick="showDetails(${index})" class="mt-5 w-full bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-2 px-4 rounded-lg transition duration-300">
+                            คลิกดูรายละเอียด
+                        </button>
+                    </div>
+                `;
+                resultsContainer.innerHTML += card;
+            });
+        }
+        
+        searchButton.addEventListener('click', performSearch);
+        studentIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        // --- Modal Functionality ---
+        window.showDetails = function(index) {
+            const item = currentData[index];
+            currentRowIndex = item.row; // Store the original row number
+
+            // Populate text data
+            document.getElementById('modalTimestamp').textContent = item.timestamp || 'N/A';
+            document.getElementById('modalStudentId').textContent = item.studentId || 'N/A';
+            document.getElementById('modalFullName').textContent = item.fullName || 'N/A';
+            document.getElementById('modalFaculty').textContent = item.faculty || 'N/A';
+            document.getElementById('modalPhone').textContent = item.phone || 'N/A';
+            document.getElementById('modalAccommodation').textContent = item.accommodation || 'N/A';
+            document.getElementById('modalAddress').textContent = item.address || 'N/A';
+            document.getElementById('modalEmergencyContact').textContent = item.emergencyContact || 'N/A';
+            document.getElementById('modalEmergencyRelation').textContent = item.emergencyRelation || 'N/A';
+            document.getElementById('modalEmergencyPhone').textContent = item.emergencyPhone || 'N/A';
+            document.getElementById('modalDriverLicense').textContent = item.driverLicense || 'N/A';
+            document.getElementById('modalVehicleType').textContent = item.vehicleType || 'N/A';
+            document.getElementById('modalBrand').textContent = item.brand || 'N/A';
+            document.getElementById('modalModel').textContent = item.model || 'N/A';
+            document.getElementById('modalLicensePlate').textContent = item.licensePlate || 'N/A';
+            document.getElementById('modalProvince').textContent = item.province || 'N/A';
+            document.getElementById('modalColor').textContent = item.color || 'N/A';
+
+            // Populate images
+            document.getElementById('imgFront').src = item.imgFront || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
+            document.getElementById('imgRear').src = item.imgRear || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
+            document.getElementById('imgLeft').src = item.imgLeft || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
+            document.getElementById('imgRight').src = item.imgRight || 'https://placehold.co/400x300/e2e8f0/718096?text=ไม่มีรูป';
+
+            // Handle Sticker section
+            if (item.stickerNumber) {
+                stickerSection.classList.add('hidden');
+                stickerDisplay.classList.remove('hidden');
+                savedStickerNumber.textContent = item.stickerNumber;
+            } else {
+                stickerSection.classList.remove('hidden');
+                stickerDisplay.classList.add('hidden');
+                // Auto-generate a suggested sticker number
+                const year = new Date().getFullYear();
+                const randomNum = Math.floor(1000 + Math.random() * 9000);
+                stickerNumberInput.value = `${year}-${randomNum}`;
+            }
+
+            // Show modal
+            detailModal.classList.remove('hidden');
+            modalContent.classList.remove('modal-leave');
+            modalContent.classList.add('modal-enter');
+        }
+
+        function closeModal() {
+            modalContent.classList.remove('modal-enter');
+            modalContent.classList.add('modal-leave');
+            setTimeout(() => {
+                detailModal.classList.add('hidden');
+            }, 300); // Match animation duration
+        }
+
+        closeModalButton.addEventListener('click', closeModal);
+        detailModal.addEventListener('click', (e) => {
+            if (e.target === detailModal) {
+                closeModal();
+            }
+        });
+
+        // --- Sticker Generation ---
+        generateStickerButton.addEventListener('click', () => {
+            const stickerNumber = stickerNumberInput.value.trim();
+            if (!stickerNumber) {
+                 Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกหมายเลขสติกเกอร์', 'warning');
+                 return;
+            }
+            if (currentRowIndex === null) {
+                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลแถวที่ต้องการอัปเดต', 'error');
+                 return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการบันทึก?',
+                text: `คุณต้องการบันทึกหมายเลขสติกเกอร์ "${stickerNumber}" ใช่หรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const url = `${SCRIPT_URL}?action=updateSticker&row=${currentRowIndex}&stickerNumber=${encodeURIComponent(stickerNumber)}`;
+                    jsonpRequest(url, 'handleUpdateResult');
+                }
+            });
+        });
+
+        // --- Callback for Sticker Update ---
+        window.handleUpdateResult = function(response) {
+            if (response.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ!',
+                    text: 'หมายเลขสติกเกอร์ถูกบันทึกเรียบร้อยแล้ว',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                // Update UI in modal
+                savedStickerNumber.textContent = stickerNumberInput.value.trim();
+                stickerSection.classList.add('hidden');
+                stickerDisplay.classList.remove('hidden');
+                // Refresh search to get updated data
+                performSearch();
+            } else {
+                 Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: response.message || 'ไม่สามารถบันทึกข้อมูลได้',
+                });
+            }
+        }
+        
+        // Check if the script URL is set
+        window.onload = () => {
+            if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec") {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'การตั้งค่าไม่สมบูรณ์',
+                    text: 'กรุณาแก้ไขไฟล์ HTML และใส่ URL ของ Google Apps Script ในตัวแปร SCRIPT_URL',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                });
+                 searchButton.disabled = true;
+            }
+        };
+
+    </script>
+</body>
+</html>
