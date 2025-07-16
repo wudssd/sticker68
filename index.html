@@ -323,19 +323,9 @@
             }
         }
         
-        // Check if the script URL is set on window load
-        window.onload = () => {
-            if (SCRIPT_URL === "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec") {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'การตั้งค่าไม่สมบูรณ์',
-                    text: 'กรุณาแก้ไขไฟล์ HTML และใส่ URL ของ Google Apps Script ในตัวแปร SCRIPT_URL',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                });
-                 searchButton.disabled = true;
-            }
-        };
+        // **ส่วนที่แก้ไขแล้ว** - ไม่มีโค้ดในส่วนนี้แล้ว
+        // The onload check has been removed.
+
     </script>
 </body>
 </html>
