@@ -107,7 +107,6 @@
     </div>
 
     <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzn87fYPfREzMZ8KctFj1b3yv7O7n7J2DG4wTcL7yJWSOfKvm33b16WaWF-jOEwkXBBJw/exec";
         const studentIdInput = document.getElementById('studentIdInput');
         const searchButton = document.getElementById('searchButton');
         const resultsContainer = document.getElementById('resultsContainer');
@@ -118,21 +117,6 @@
         let currentData = [];
         let currentRowIndex = null;
 
-        function jsonpRequest(url, callbackName) {
-            const oldScript = document.getElementById(callbackName);
-            if (oldScript) oldScript.parentNode.removeChild(oldScript);
-            const script = document.createElement('script');
-            script.id = callbackName;
-            script.src = `${url}&callback=${callbackName}`;
-            document.body.appendChild(script);
-            script.onload = () => document.body.removeChild(script);
-            script.onerror = () => {
-                document.body.removeChild(script);
-                loader.classList.add('hidden');
-                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบ URL ของ Script หรือการตั้งค่า', 'error');
-            };
-        }
-
         function performSearch() {
             const studentId = studentIdInput.value.trim();
             if (studentId.length !== 8 || !/^\d+$/.test(studentId)) {
@@ -141,12 +125,25 @@
             }
             resultsContainer.innerHTML = '';
             loader.classList.remove('hidden');
-            const url = `${SCRIPT_URL}?action=search&studentId=${studentId}`;
-            jsonpRequest(url, 'handleSearchResults');
+            searchButton.disabled = true;
+            
+            // Use google.script.run for direct communication
+            google.script.run
+                .withSuccessHandler(handleSearchResults)
+                .withFailureHandler(handleSearchFailure)
+                .searchByStudentId(studentId);
         }
 
-        window.handleSearchResults = function(response) {
+        function handleSearchFailure(error) {
             loader.classList.add('hidden');
+            searchButton.disabled = false;
+            Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+        }
+
+        function handleSearchResults(response) {
+            loader.classList.add('hidden');
+            searchButton.disabled = false;
+
             if (response.status === 'success' && response.data.length > 0) {
                 currentData = response.data;
                 displayResults(currentData);
@@ -155,31 +152,11 @@
             }
         }
 
-        // --- OPTIMIZED displayResults function ---
         function displayResults(data) {
-            // 1. Create an empty string to build the HTML.
             let allCardsHtml = '';
-            
-            // 2. Loop through the data and append HTML for each card to the string.
             data.forEach((item, index) => {
-                allCardsHtml += `
-                    <div class="card bg-white rounded-xl shadow-md overflow-hidden p-5 flex flex-col justify-between" style="border-left: 5px solid #60a5fa;">
-                        <div>
-                            <p class="text-sm text-gray-500">รหัสนักศึกษา: ${item.studentId || 'N/A'}</p>
-                            <h3 class="font-bold text-lg text-gray-800 mt-1">${item.fullName || 'N/A'}</h3>
-                            <div class="mt-4 space-y-2 text-sm text-gray-700">
-                                <p><strong>ทะเบียน:</strong> ${item.licensePlate || 'N/A'}</p>
-                                <p><strong>ประเภท:</strong> ${item.vehicleType || 'N/A'}</p>
-                                <p><strong>ยี่ห้อ/รุ่น:</strong> ${item.brand || 'N/A'} ${item.model || ''}</p>
-                            </div>
-                        </div>
-                        <button onclick="showDetails(${index})" class="mt-5 w-full bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-2 px-4 rounded-lg transition duration-300">
-                            คลิกดูรายละเอียด
-                        </button>
-                    </div>`;
+                allCardsHtml += `<div class="card bg-white rounded-xl shadow-md overflow-hidden p-5 flex flex-col justify-between" style="border-left: 5px solid #60a5fa;"><div><p class="text-sm text-gray-500">รหัสนักศึกษา: ${item.studentId||'N/A'}</p><h3 class="font-bold text-lg text-gray-800 mt-1">${item.fullName||'N/A'}</h3><div class="mt-4 space-y-2 text-sm text-gray-700"><p><strong>ทะเบียน:</strong> ${item.licensePlate||'N/A'}</p><p><strong>ประเภท:</strong> ${item.vehicleType||'N/A'}</p><p><strong>ยี่ห้อ/รุ่น:</strong> ${item.brand||'N/A'} ${item.model||''}</p></div></div><button onclick="showDetails(${index})" class="mt-5 w-full bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-2 px-4 rounded-lg transition duration-300">คลิกดูรายละเอียด</button></div>`;
             });
-            
-            // 3. Set the innerHTML of the container only ONCE with the complete HTML string.
             resultsContainer.innerHTML = allCardsHtml;
         }
         
@@ -245,16 +222,22 @@
                 inputValidator: (value) => !value && 'กรุณาใส่หมายเลขสติกเกอร์!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    const url = `${SCRIPT_URL}?action=updateSticker&row=${currentRowIndex}&stickerNumber=${encodeURIComponent(result.value)}&stickerType=${type}`;
-                    jsonpRequest(url, 'handleUpdateResult');
+                    google.script.run
+                        .withSuccessHandler(handleUpdateResult)
+                        .withFailureHandler(handleSearchFailure) // Can reuse the same failure handler
+                        .updateStickerNumber(currentRowIndex, result.value, type);
                 }
             });
         }
 
-        window.handleUpdateResult = function(response) {
+        function handleUpdateResult(response) {
             if (response.status === 'success') {
                 Swal.fire('บันทึกสำเร็จ!', 'หมายเลขสติกเกอร์ถูกบันทึกเรียบร้อยแล้ว', 'success');
-                performSearch();
+                // We need to re-run the search to get the fresh data
+                const studentId = studentIdInput.value.trim();
+                if (studentId) {
+                    performSearch();
+                }
                 closeModal();
             } else {
                  Swal.fire('เกิดข้อผิดพลาด', response.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
